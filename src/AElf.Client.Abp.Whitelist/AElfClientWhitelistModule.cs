@@ -6,7 +6,7 @@ namespace AElf.Client.Abp.Whitelist;
     typeof(AElfClientModule),
     typeof(CoreAElfModule)
 )]
-public class AElfClientWhitelistModule
+public class AElfClientWhitelistModule : AbpModule
 {
     
 }

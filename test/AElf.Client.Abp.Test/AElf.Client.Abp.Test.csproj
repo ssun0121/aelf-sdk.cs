@@ -24,6 +24,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\AElf.Client.Abp.Token\AElf.Client.Abp.Token.csproj" />
+      <ProjectReference Include="..\..\src\AElf.Client.Abp.Whitelist\AElf.Client.Abp.Whitelist.csproj" />
       <ProjectReference Include="..\AElf.Client.Abp.TestBase\AElf.Client.Abp.TestBase.csproj" />
     </ItemGroup>
 

@@ -11,7 +11,7 @@ public class WhitelistService : ContractServiceBase, IWhitelistService, ITransie
     private readonly IAElfClientService _clientService;
     private readonly AElfClientConfigOptions _clientConfigOptions;
 
-    protected WhitelistService(IAElfClientService clientService,
+    public WhitelistService(IAElfClientService clientService,
         IOptionsSnapshot<AElfClientConfigOptions> clientConfigOptions) : base(clientService,
         Address.FromBase58("aceGtyU2fVcBkViZcaqZXHHjd7eNAJ6NPwbuFwhqv6He49BS1"))
     {
