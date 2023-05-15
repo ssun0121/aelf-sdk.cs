@@ -1,12 +1,13 @@
 ﻿using AElf.Client.Core;
 using Volo.Abp.Modularity;
 
-namespace AElf.Client.Oracle;
-
+namespace AElf.Client.MerkleTree;
+ 
 [DependsOn(
     typeof(AElfClientModule),
     typeof(CoreAElfModule)
 )]
-public class AElfClientOracleModule : AbpModule
+public class AElfClientMerkleTreeModule : AbpModule
 {
+    
 }

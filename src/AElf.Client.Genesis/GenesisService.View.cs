@@ -1,3 +1,4 @@
+using AElf.Standards.ACS0;
 using AElf.Types;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -14,6 +15,16 @@ public partial class GenesisService
         var authorityInfo = new AuthorityInfo();
         authorityInfo.MergeFrom(result);
         return authorityInfo;
+    }
+    
+    public async Task<ContractInfo> GetContractInfo(Address input)
+    {
+        var useClientAlias = _clientConfigOptions.ClientAlias;
+        var result = await _clientService.ViewAsync(_contractAddress, "GetContractInfo",
+            input, useClientAlias); 
+        var contractInfo = new ContractInfo();
+        contractInfo.MergeFrom(result);
+        return contractInfo;
     }
 
     public async Task<SmartContractRegistration> GetSmartContractRegistrationByCodeHash(Hash codeHash)

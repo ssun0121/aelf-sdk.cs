@@ -22,11 +22,19 @@ public sealed class GenesisServiceTests : AElfClientAbpContractServiceTestBase
     }
 
     [Theory]
-    [InlineData("AElf.Contracts.NFT")]
+    [InlineData("AElf.Contracts.Regiment")]
     public async Task DeployContract(string contractName)
     {
         var tuple = await _deployService.DeployContract(contractName);
         _output.WriteLine(tuple.Item2);
         tuple.Item1.ShouldNotBeNull();
+    }
+
+    [Theory] 
+    [InlineData("AElf.Contracts.MultiToken","JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE")]
+    public async Task UpdateContract(string contractName,string contractAddress)
+    {
+        var tuple = await _deployService.UpdateContract(contractName,contractAddress);
+        _output.WriteLine(tuple.Item2);
     }
 }

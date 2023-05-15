@@ -1,5 +1,8 @@
-﻿namespace AElf.Client.Regiment;
+﻿using Volo.Abp.Modularity;
 
-public class AElfClientRegimentModule
+namespace AElf.Client.Regiment;
+
+public class AElfClientRegimentModule : AbpModule
 {
+    
 }

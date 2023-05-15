@@ -1,5 +1,13 @@
-﻿namespace AElf.Client.Bridge;
+﻿using AElf.Client.Core;
+using Volo.Abp.Modularity;
 
-public class AElfClientBridgeModule
+namespace AElf.Client.Bridge;
+
+[DependsOn(
+    typeof(AElfClientModule),
+    typeof(CoreAElfModule)
+)]
+public class AElfClientBridgeModule : AbpModule
 {
+    
 }

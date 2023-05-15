@@ -25,6 +25,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\src\AElf.Client.Bridge\AElf.Client.Bridge.csproj" />
+        <ProjectReference Include="..\..\src\AElf.Client.MerkleTree\AElf.Client.MerkleTree.csproj" />
+        <ProjectReference Include="..\..\src\AElf.Client.Oracle\AElf.Client.Oracle.csproj" />
+        <ProjectReference Include="..\..\src\AElf.Client.Regiment\AElf.Client.Regiment.csproj" />
+        <ProjectReference Include="..\..\src\AElf.Client.Report\AElf.Client.Report.csproj" />
         <ProjectReference Include="..\..\src\AElf.Client\AElf.Client.csproj" />
         <ProjectReference Include="..\..\src\AElf.Client.Token\AElf.Client.Token.csproj" />
         <ProjectReference Include="..\..\src\AElf.Client.Genesis\AElf.Client.Genesis.csproj" />

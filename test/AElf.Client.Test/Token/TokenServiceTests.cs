@@ -3,10 +3,14 @@ using System.Threading.Tasks;
 using AElf.Client.Token;
 using AElf.Client.Token.SyncTokenInfo;
 using AElf.Contracts.Bridge;
+using AElf.Contracts.MultiToken;
 using AElf.Contracts.NFT;
 using AElf.Types;
 using Google.Protobuf;
 using Shouldly;
+using Xunit.Abstractions;
+using ApproveInput = AElf.Contracts.MultiToken.ApproveInput;
+using CreateInput = AElf.Contracts.MultiToken.CreateInput;
 using TransferInput = AElf.Contracts.MultiToken.TransferInput;
 
 namespace AElf.Client.Test.Token;
@@ -16,15 +20,17 @@ public sealed class TokenServiceTests : AElfClientAbpContractServiceTestBase
 {
     private readonly ITokenService _tokenService;
     private readonly ISyncTokenInfoQueueService _syncTokenInfoQueueService;
+    private readonly ITestOutputHelper _output;
 
-    public TokenServiceTests()
+    public TokenServiceTests(ITestOutputHelper output)
     {
         _tokenService = GetRequiredService<ITokenService>();
         _syncTokenInfoQueueService = GetRequiredService<ISyncTokenInfoQueueService>();
+        _output = output;
     }
 
     [Theory]
-    [InlineData("ELF")]
+    [InlineData("USDT")]
     public async Task GetTokenInfoTest(string symbol)
     {
         var tokenInfo = await _tokenService.GetTokenInfoAsync(symbol);
@@ -32,7 +38,7 @@ public sealed class TokenServiceTests : AElfClientAbpContractServiceTestBase
     }
 
     [Theory]
-    [InlineData("2nSXrp4iM3A1gB5WKXjkwJQwy56jzcw1ESNpVnWywnyjXFixGc", "ELF", 1_00000000)]
+    [InlineData("ZVJHCVCzixThco58iqe4qnE79pmxeDuYtMsM8k71RhLLxdqB5", "ELF", 10_00000000)]
     public async Task TransferTest(string address, string symbol, long amount)
     {
         var result = await _tokenService.TransferAsync(new TransferInput
@@ -82,21 +88,61 @@ public sealed class TokenServiceTests : AElfClientAbpContractServiceTestBase
             Symbol = symbol,
             MinterList = new MinterList
             {
-                Value = { address }
+                Value = {address}
             }
         });
     }
 
     [Theory]
-    [InlineData("bb16f381b0f2e795a988285dec3a68affacdccd7d3ac2e74edc808c102efcd95", 228, "9413000000000000000000")]
-    public async Task SwapTokenTest(string swapIdHex, long receiptId, string amount)
+    [InlineData("ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni")]
+    public async Task CreatePortTokenTest(string issuer)
     {
-        var swapId = Hash.LoadFromHex(swapIdHex);
-        await _tokenService.SwapTokenAsync(new SwapTokenInput
+        var result = await _tokenService.CreateTokenAsync(new CreateInput
         {
-            SwapId = swapId,
-            OriginAmount = amount,
-            ReceiptId = receiptId
+            Symbol = "PORT",
+            TokenName = "Port Token",
+            TotalSupply = 10_00000000_00000000,
+            Decimals = 8,
+            Issuer = Address.FromBase58(issuer),
+            IsBurnable = true
         });
+        result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+        var symbol = TokenCreated.Parser.ParseFrom(result.TransactionResult.Logs.First(i => i.Name == nameof(TokenCreated))
+            .NonIndexed).Symbol;
+        symbol.ShouldBe("PORT");
+    }
+
+    [Theory]
+    [InlineData(10000000000_00000000,"USDT","225ajURvev5rgX8HnMJ8GjbPnRxUrCHoD7HUjhWQqewEJ5GAv1")]
+    public async Task ApproveTokenTest(long amount,string symbol,string spender)
+    {
+        var result = await _tokenService.ApproveTokenAsync(new ApproveInput
+        {
+            Amount = long.MaxValue,
+            Symbol = symbol,
+            Spender = Address.FromBase58(spender)
+        });
+        result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+    }
+
+    // [Theory]
+    // [InlineData("bb16f381b0f2e795a988285dec3a68affacdccd7d3ac2e74edc808c102efcd95", 228, "9413000000000000000000")]
+    // public async Task SwapTokenTest(string swapIdHex, long receiptId, string amount)
+    // {
+    //     var swapId = Hash.LoadFromHex(swapIdHex);
+    //     await _tokenService.SwapTokenAsync(new SwapTokenInput
+    //     {
+    //         SwapId = swapId,
+    //         OriginAmount = amount,
+    //         ReceiptId = receiptId
+    //     });
+    // }
+
+    [Theory]
+    [InlineData("ELF","26icJLGpnQke1PRyi3tXsT9maaHJsdFsjMHqtrSVKYVpctCqy4")]
+    public async Task GetBalanceTest(string symbol,string owner)
+    {
+        var result = await _tokenService.GetTokenBalanceAsync(symbol, Address.FromBase58(owner));
+        _output.WriteLine(result.Balance.ToString());
     }
 }

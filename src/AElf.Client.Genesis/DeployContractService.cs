@@ -88,7 +88,67 @@ public class DeployContractService : IDeployContractService, ITransientDependenc
 
             var deployAddress = ContractDeployed.Parser.ParseFrom(releaseCodeCheckedResult.TransactionResult.Logs
                 .First(l => l.Name.Contains(nameof(ContractDeployed))).NonIndexed).Address;
+            var contractInfo = await _genesisService.GetContractInfo(deployAddress);
+
             return new Tuple<Address?, string>(deployAddress, $"Contract deploy passed authority, contract address: {deployAddress}");;
+
+        }
+
+        
+        return new Tuple<Address?, string>(null, "Contract code didn't pass the code check");
+    }
+       public async Task<Tuple<Address?, string>> UpdateContract(string contractFileName, string contractAddress)
+    {
+        Logger.LogInformation($"Update contract: {contractFileName}");
+        var contractInfo = await _genesisService.GetContractInfo(Address.FromBase58(contractAddress));
+        
+        var input = await ContractUpdateInput(contractFileName, contractAddress);
+        var ProposeUpdateContract = await _genesisService.ProposeUpdateContract(input);
+        Logger.LogInformation("ProposalNewContact: {Result}", ProposeUpdateContract.TransactionResult);
+        if (ProposeUpdateContract.TransactionResult.Status != TransactionResultStatus.Mined) 
+            return new Tuple<Address?, string>(null, ProposeUpdateContract.TransactionResult.TransactionId.ToString());
+
+        var proposalNewLogs = ProposeUpdateContract.TransactionResult.Logs;
+        var proposalId = ProposalCreated.Parser
+            .ParseFrom(proposalNewLogs.First(l => l.Name.Contains(nameof(ProposalCreated))).NonIndexed)
+            .ProposalId;
+        var proposalHash = ContractProposed.Parser
+            .ParseFrom(proposalNewLogs.First(l => l.Name.Contains(nameof(ContractProposed))).NonIndexed)
+            .ProposedContractInputHash;
+
+        var toBeRelease = await ApproveThroughMiners(proposalId);
+        if (!toBeRelease)
+            return new Tuple<Address?, string>(null, $"Proposal {proposalId} not ready for release");
+
+        var releaseApprovedInput = new ReleaseContractInput
+        {
+            ProposalId = proposalId,
+            ProposedContractInputHash = proposalHash
+        };
+        var releaseApprovedContract = await _genesisService.ReleaseApprovedContract(releaseApprovedInput);
+        Logger.LogInformation("ReleaseApprovedContract: {Result}", releaseApprovedContract.TransactionResult);
+        if (releaseApprovedContract.TransactionResult.Status != TransactionResultStatus.Mined)
+            return new Tuple<Address?, string>(null, releaseApprovedContract.TransactionResult.TransactionId.ToString());
+        var releaseApprovedLogs = releaseApprovedContract.TransactionResult.Logs;
+        var deployProposalId = ProposalCreated.Parser
+            .ParseFrom(releaseApprovedLogs.First(l => l.Name.Contains(nameof(ProposalCreated))).NonIndexed)
+            .ProposalId;
+
+        var releaseCodeCheckedInput = new ReleaseContractInput
+        {
+            ProposalId = deployProposalId,
+            ProposedContractInputHash = proposalHash
+        };
+
+        if (await CheckProposal(deployProposalId))
+        {
+            var releaseCodeCheckedResult = await _genesisService.ReleaseCodeCheckedContract(releaseCodeCheckedInput);
+            Logger.LogInformation("ReleaseCodeCheckedResult: {Result}", releaseCodeCheckedResult.TransactionResult);
+            if (releaseCodeCheckedResult.TransactionResult.Status != TransactionResultStatus.Mined)
+                return new Tuple<Address?, string>(null, releaseCodeCheckedResult.TransactionResult.TransactionId.ToString());
+
+             
+            return new Tuple<Address?, string>(null, $"Contract update passed authority, contract address: {contractAddress}");;
         }
         return new Tuple<Address?, string>(null, "Contract code didn't pass the code check");
     }
@@ -113,6 +173,24 @@ public class DeployContractService : IDeployContractService, ITransientDependenc
         return new ContractDeploymentInput();
     }
 
+    private async Task<ContractUpdateInput> ContractUpdateInput(string name, string contractAddress)
+    {
+        var contractPath = GetFileFullPath(name, _contractOption.ContractDirectory);
+        var code = await File.ReadAllBytesAsync(contractPath);
+        var checkCode = await CheckCode(code);
+
+        if (checkCode)
+        {
+            var input = new ContractUpdateInput
+            {
+                Address = Address.FromBase58(contractAddress),
+                Code = ByteString.CopyFrom(code)
+            };
+            return input;
+        }
+        
+        return new ContractUpdateInput();
+    }
     private async Task<bool> ApproveThroughMiners(Hash proposalId)
     {
         var miners = await _consensusService.GetCurrentMinerList();
